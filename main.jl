@@ -92,16 +92,15 @@ function genetic_algorithm1(pop, data, h_i, h_j, tol=1e-3, n_iter=1000)
         #Evaluate fitness of population
         scores = [fitness(data, i*h_i + (1-i)*h_j) for i in pop]
         u = pop[argmin(scores)]
-        #Cull population, keep best half then Produce then Mutate then Boundary
-        pop = [pop[j] for j in sortperm(scores)[1:5]] |> offspring  |> mutate .|> boundary
         if abs(sol - u) <= tol
-            sol = maximum([u, minimum(pop)])
-            println("Convergence, estimate for u: ",round(sol, digits=5), " after :", i, " iterations.")
-            p1 = scatter(1:1:21, sol*hat(1,13)+(1-sol)*hat(9,21), label="Pred")
+            println("Convergence, estimate for u: ",round(u, digits=5), " after :", i, " iterations.")
+            p1 = scatter(1:1:21, sol*hat(1,13)+(1-u)*hat(9,21), label="Pred")
             p2 = plot!(1:1:21, test, label="True")
             savefig("pred_vs_true.pdf")
             return p2
         end
+        #Cull population, keep best half then Produce then Mutate then Boundary
+        pop = [pop[j] for j in sortperm(scores)[1:5]] |> offspring  |> mutate .|> boundary
         sol = u
     end
     return println("No convergence after ", n_iter, " iterations. \nBest estimate: ", sol)
@@ -110,8 +109,3 @@ end
 pop = rand(10)
 @time genetic_algorithm(pop, test, hat(1,13), hat(9,21), 1e-6, 1e6)
 @time genetic_algorithm1(pop, test, hat(1,13), hat(9,21), 1e-6, 1e6)
-
-
-
-
-
