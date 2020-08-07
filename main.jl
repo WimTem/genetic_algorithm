@@ -14,7 +14,7 @@ end
 u = rand()
 test = u*hat(1,13) + (1-u)*hat(9,21)
 
-p1 = plot(hcat(1:1:21,1:1:21,1:1:21), [hat(1,13)+hat(9,21) hat(1,13)+hat(5, 17)  hat(5,17)+hat(9,21)], lw=2, layout=(3,1), label=["H1+H2" "H1+H3" "H2+H3"])
+p1 = plot([1:21 for i in 1:3], [hat(1,13)+hat(9,21) hat(1,13)+hat(5, 17)  hat(5,17)+hat(9,21)], lw=2, layout=(3,1), label=["H1+H2" "H1+H3" "H2+H3"])
 savefig(p1, "Reference functions.pdf")
 
 #Fitness function(Mean Squared Error)
@@ -42,51 +42,12 @@ function mutate(x)
     return [i[1] + i[2] for i in zip(x, rand(d, 10))]
 end
 
-# function boundary(x)
-#     result = []
-#     for i in x
-#         if i < 0
-#             push!(result, 0)
-#         elseif i > 1
-#             push!(result, 1)
-#         else
-#             push!(result, i)
-#         end
-#     end
-#     return result
-# end
-
 function boundary(x::Real)
     (x < 0 ? 0 : x)
     (x > 1 ? 1 : x)
 end
 
 function genetic_algorithm(pop, data, h_i, h_j, tol=1e-3, n_iter=1000)
-    sol = 0
-    for i = 1:n_iter
-        #Evaluate fitness of population
-        scores = [fitness(data, i*h_i + (1-i)*h_j) for i in pop]
-        u = pop[argmin(scores)]
-        #Cull population, keep best half
-        pop = [pop[j] for j in sortperm(scores)[1:5]]
-        #Produce offspring
-        pop = offspring(pop)
-        #Mutate offspring
-        pop = boundary.(mutate(pop))
-        if abs(sol - u) <= tol
-            sol = maximum([u, minimum(pop)])
-            println("Convergence, estimate for u: ",round(sol, digits=5), " after :", i, "iterations.")
-            p1 = scatter(1:1:21, sol*hat(1,13)+(1-sol)*hat(9,21), label="Pred")
-            p2 = plot!(1:1:21, test, label="True")
-            return p2
-        end
-        sol = u
-    end
-    return println("No convergence after ", n_iter, " iterations. \nBest estimate: ", sol)
-
-end
-
-function genetic_algorithm1(pop, data, h_i, h_j, tol=1e-3, n_iter=1000)
     sol = 0
     for i = 1:n_iter
         #Evaluate fitness of population
@@ -99,13 +60,15 @@ function genetic_algorithm1(pop, data, h_i, h_j, tol=1e-3, n_iter=1000)
             savefig("pred_vs_true.pdf")
             return p2
         end
-        #Cull population, keep best half then Produce then Mutate then Boundary
-        pop = [pop[j] for j in sortperm(scores)[1:5]] |> offspring  |> mutate .|> boundary
+        #Cull population, keep best half then Produce then Mutate then clamp to (0,1)
+        pop = clamp.([pop[j] for j in sortperm(scores)[1:5]] |> offspring  |> mutate, 0, 1)
         sol = u
     end
     return println("No convergence after ", n_iter, " iterations. \nBest estimate: ", sol)
 end
 
 pop = rand(10)
+
 @time genetic_algorithm(pop, test, hat(1,13), hat(9,21), 1e-6, 1e6)
-@time genetic_algorithm1(pop, test, hat(1,13), hat(9,21), 1e-6, 1e6)
+
+u
